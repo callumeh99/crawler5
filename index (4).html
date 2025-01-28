@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLM Scout</title>
+    <link href="https://fonts.googleapis.com/css2?family=K2D:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <style>
+        :root {
+            --primary-purple: #7B2CBF;
+            --primary-hover: #9D4EDD;
+            --bg-dark: #0a0a0a;
+            --bg-card: #1a1a1a;
+            --text-light: #ffffff;
+            --text-gray: #a0a0a0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'K2D', sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .info-icon {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: var(--primary-purple);
+            cursor: pointer;
+            z-index: 1000;
+        }
+
+        .info-tooltip {
+            position: absolute;
+            left: 40px;
+            top: 0;
+            background-color: var(--bg-card);
+            border: 1px solid rgba(123, 44, 191, 0.2);
+            padding: 15px;
+            border-radius: 8px;
+            width: 300px;
+            display: none;
+            color: var(--text-light);
+            font-size: 14px;
+            line-height: 1.5;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .info-icon:hover .info-tooltip {
+            display: block;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--primary-purple);
+            margin: 30px 0;
+            font-weight: 600;
+            font-size: 2.5rem;
+        }
+
+        .results-container {
+            flex-grow: 1;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .message-pair {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeIn 0.3s ease forwards;
+        }
+
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .prompt-bubble {
+            align-self: flex-end;
+            background-color: var(--primary-purple);
+            padding: 16px 24px;
+            border-radius: 16px 16px 0 16px;
+            max-width: 80%;
+            word-wrap: break-word;
+        }
+
+        .result-bubble {
+            background-color: var(--bg-card);
+            padding: 24px;
+            border-radius: 16px 16px 16px 0;
+            border: 1px solid rgba(123, 44, 191, 0.2);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            font-size: 15px;
+            line-height: 1.6;
+            position: relative;
+            max-width: 80%;
+        }
+
+        .copy-button {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background-color: rgba(123, 44, 191, 0.2);
+            border: none;
+            border-radius: 8px;
+            padding: 8px 12px;
+            color: var(--text-light);
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+
+        .copy-button:hover {
+            background-color: rgba(123, 44, 191, 0.4);
+        }
+
+        .placeholder-message {
+            text-align: center;
+            color: var(--text-gray);
+            padding: 40px;
+            background-color: var(--bg-card);
+            border-radius: 16px;
+            border: 1px solid rgba(123, 44, 191, 0.2);
+            margin-top: 20px;
+        }
+
+        .input-section {
+            background-color: var(--bg-card);
+            padding: 20px 40px;
+            border-radius: 16px;
+            margin: 20px auto;
+            width: 90%;
+            max-width: 1600px;
+            position: sticky;
+            bottom: 20px;
+            border: 1px solid rgba(123, 44, 191, 0.2);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            z-index: 10;
+        }
+
+        .input-wrapper {
+            display: flex;
+            gap: 16px;
+            width: 100%;
+            align-items: flex-end;
+        }
+
+        textarea {
+            flex-grow: 1;
+            padding: 16px 20px;
+            background-color: #262626;
+            border: 1px solid var(--primary-purple);
+            color: var(--text-light);
+            border-radius: 12px;
+            font-family: 'K2D', sans-serif;
+            font-size: 16px;
+            resize: none;
+            height: 60px;
+            transition: all 0.3s ease;
+            overflow: hidden;
+            min-width: 0;
+            width: 100%;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary-hover);
+            box-shadow: 0 0 0 2px rgba(123, 44, 191, 0.2);
+        }
+
+        button {
+            background-color: var(--primary-purple);
+            color: white;
+            padding: 16px 32px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-family: 'K2D', sans-serif;
+            font-size: 16px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            min-width: 120px;
+            flex-shrink: 0;
+        }
+
+        button:hover {
+            background-color: var(--primary-hover);
+            transform: translateY(-1px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            color: var(--text-gray);
+            padding: 20px;
+        }
+
+        .loading-dots {
+            display: flex;
+            gap: 4px;
+        }
+
+        .loading-dots span {
+            width: 8px;
+            height: 8px;
+            background-color: var(--primary-purple);
+            border-radius: 50%;
+            animation: bounce 1.4s infinite ease-in-out;
+        }
+
+        .loading-dots span:nth-child(1) { animation-delay: -0.32s; }
+        .loading-dots span:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+
+        @media (max-width: 768px) {
+            .input-section {
+                padding: 16px;
+                width: 95%;
+            }
+
+            textarea {
+                padding: 12px 16px;
+            }
+
+            button {
+                padding: 12px 24px;
+                min-width: 100px;
+            }
+
+            .info-tooltip {
+                width: 250px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="info-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="16" x2="12" y2="12"></line>
+                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            </svg>
+            <div class="info-tooltip">
+                This is a Large Language Model consensus generator. It gathers the responses of 4 different Large Language Models and provides areas of difference, similarity and a general consensus. Have fun!
+            </div>
+        </div>
+        <h1>LLM SCOUT</h1>
+        <div class="results-container">
+            <div class="placeholder-message">
+                Your analysis results will appear here. Start by entering a prompt below!
+            </div>
+        </div>
+        <div class="input-section">
+            <div class="input-wrapper">
+                <textarea id="prompt" placeholder="Enter your prompt here..." rows="1"></textarea>
+                <button onclick="analyzePrompt()">Analyze</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'https://crawler-83ds.onrender.com';
+
+        const loadingHTML = `
+            <div class="loading">
+                <div class="loading-dots">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </div>
+        `;
+
+        function createMessagePair(prompt, result) {
+            const messagePair = document.createElement('div');
+            messagePair.className = 'message-pair';
+            
+            const promptBubble = document.createElement('div');
+            promptBubble.className = 'prompt-bubble';
+            promptBubble.textContent = prompt;
+            
+            const resultBubble = document.createElement('div');
+            resultBubble.className = 'result-bubble';
+            resultBubble.innerHTML = result;
+            
+            const copyButton = document.createElement('button');
+            copyButton.className = 'copy-button';
+            copyButton.textContent = 'Copy';
+            copyButton.onclick = () => {
+                navigator.clipboard.writeText(result.replace(/<[^>]*>/g, ''));
+                copyButton.textContent = 'Copied!';
+                setTimeout(() => {
+                    copyButton.textContent = 'Copy';
+                }, 2000);
+            };
+            
+            resultBubble.appendChild(copyButton);
+            messagePair.appendChild(promptBubble);
+            messagePair.appendChild(resultBubble);
+            
+            return messagePair;
+        }
+
+        async function analyzePrompt() {
+            const promptElement = document.getElementById('prompt');
+            const resultsContainer = document.querySelector('.results-container');
+            const prompt = promptElement.value;
+            
+            if (!prompt.trim()) {
+                alert('Please enter a prompt');
+                return;
+            }
+            
+            const placeholder = document.querySelector('.placeholder-message');
+            if (placeholder) {
+                placeholder.remove();
+            }
+            
+            const messagePair = createMessagePair(prompt, loadingHTML);
+            resultsContainer.appendChild(messagePair);
+            resultsContainer.scrollTop = resultsContainer.scrollHeight;
+            
+            promptElement.value = '';
+            promptElement.style.height = '60px';
+            
+            try {
+                const response = await fetch(`${API_URL}/analyze`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ prompt })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                
+                const data = await response.json();
+                const resultContent = data.success ? data.analysis : 'Error: ' + data.error;
+                
+                const resultBubble = messagePair.querySelector('.result-bubble');
+                resultBubble.innerHTML = resultContent;
+                
+                const copyButton = document.createElement('button');
+                copyButton.className = 'copy-button';
+                copyButton.textContent = 'Copy';
+                copyButton.onclick = () => {
+                    navigator.clipboard.writeText(resultContent.replace(/<[^>]*>/g, ''));
+                    copyButton.textContent = 'Copied!';
+                    setTimeout(() => {
+                        copyButton.textContent = 'Copy';
+                    }, 2000);
+                };
+                resultBubble.appendChild(copyButton);
+                
+            } catch (error) {
+                const resultBubble = messagePair.querySelector('.result-bubble');
+                resultBubble.textContent = 'Error: ' + error.message;
+            }
+        }
+
+        const textarea = document.getElementById('prompt');
+        textarea.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+        });
+
+        textarea.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                analyzePrompt();
+            }
+        });
+    </script>
+</body>
+</html>
